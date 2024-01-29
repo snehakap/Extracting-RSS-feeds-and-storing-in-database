@@ -101,7 +101,7 @@ def parse_feeds(feeds):
             feed = feedparser.parse(feed_url)
             for entry in feed.entries:
                 article = {}
-                article['id'] = str(uuid.uuid4())  # Generate unique ID
+                article['id'] = str(uuid.uuid4())
                 article['title'] = entry.title
                 article['content'] = entry.get('summary', '')
                 article['publish'] = entry.get('published', '')
@@ -133,7 +133,7 @@ def parse_feeds(feeds):
 def export_to_csv(articles):
     try:
         with open('classified_articles.csv', 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['id', 'title', 'content', 'source_url', 'publish', 'category']  # Removed 'published_date'
+            fieldnames = ['id', 'title', 'content', 'source_url', 'publish', 'category']  
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             for article in articles:
