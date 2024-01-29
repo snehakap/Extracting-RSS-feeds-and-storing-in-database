@@ -1,0 +1,70 @@
+Documentation: News Article Categorization System
+
+1. Introduction:
+
+The News Article Categorization System is designed to parse news feeds from various sources, classify the articles into predefined categories, store the information in a SQLite database, and export the results to a CSV file. This system utilizes spaCy for natural language processing, Celery for task management, and SQLAlchemy for database interactions.
+
+2. Components and Design Choices:
+
+Database Setup (SQLAlchemy):
+
+The system employs SQLAlchemy to create and interact with a SQLite database.
+Two tables, 'articles' and 'sources,' are defined to store article and source information.
+The 'Article' class has attributes like title, content, published date, source ID, and category.
+The 'Source' class stores information about the news sources.
+Task Queue (Celery):
+
+Celery is utilized for asynchronous task management to improve system responsiveness.
+The classify_category task asynchronously classifies article categories based on spaCy analysis.
+The Celery task is triggered for each article ID after parsing and extracting information from the news feeds.
+Natural Language Processing (spaCy):
+
+spaCy's English language model (en_core_web_sm) is loaded to perform natural language processing on article content.
+Named Entity Recognition (NER) and Part-of-Speech (POS) tagging are used to understand the context of the text.
+Keywords related to predefined categories (terrorism, protest, positive, natural, etc.) are identified during processing.
+Parsing News Feeds:
+
+The parse_feeds function fetches news feeds from specified URLs using the feedparser library.
+Each entry in the feeds is processed, and relevant information (title, content, publish date, source URL) is extracted.
+The classify_category Celery task is invoked for each article to classify its category based on the content.
+Category Classification Logic:
+
+The system employs a rule-based approach for category classification.
+Keywords related to each category are predefined, and their presence in the article content influences the classification.
+Contextual information, such as POS tags and named entities, is considered for more accurate classification.
+Logging and Error Handling:
+
+The logging module is employed to capture events, errors, and critical information throughout the system.
+Each major operation (parsing feeds, classifying categories, exporting to CSV) is wrapped in try-except blocks, and errors are logged.
+The log file, news_classification.log, provides detailed information for debugging and system monitoring.
+Exporting to CSV:
+
+The export_to_csv function writes the classified articles to a CSV file named classified_articles.csv.
+The CSV file includes columns for article ID, title, content, source URL, publish date, and category.
+
+3. Approach to Problem Solving:
+
+Keyword-Based Categorization:
+
+The system utilizes a predefined set of keywords for each category.
+Categories are assigned based on the presence of these keywords in the article content.
+Contextual Understanding:
+
+The system enhances category assignment by considering contextual information such as POS tags and named entities.
+Named Entity Recognition helps identify entities in the text, aiding in more accurate categorization.
+Logging and Error Handling:
+
+Comprehensive logging is implemented to track events and identify potential errors.
+Errors are handled gracefully to ensure the system continues functioning even in the presence of unexpected issues.
+Asynchronous Processing (Celery):
+
+Celery is employed for asynchronous task management, ensuring efficient processing of tasks without blocking the main application.
+The classify_category task is invoked asynchronously for each article ID, improving system responsiveness.
+Flexibility and Adaptability:
+
+The system allows for flexibility in adjusting keywords and categories based on specific characteristics of news articles.
+The rule-based approach can be refined or expanded to accommodate new categories or keywords.
+
+4. Conclusion:
+
+The News Article Categorization System employs a combination of natural language processing, asynchronous task management, and robust error handling to categorize news articles effectively. By utilizing spaCy for contextual understanding and Celery for asynchronous processing, the system is designed to handle a variety of news feeds gracefully. The implemented logic and design choices prioritize accuracy, flexibility, and maintainability.
