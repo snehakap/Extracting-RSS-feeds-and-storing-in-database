@@ -48,7 +48,6 @@ app = Celery('tasks', broker='redis://:hc4vtkIYNrbiKZJwPsIXVpnGBRBi1G0K@redis-16
 # Load spaCy English language model
 nlp = spacy.load("en_core_web_sm")
 
-# Define Celery task for category classification
 @app.task
 def classify_category(article_id):
     article = session.query(Article).filter(Article.id == article_id).first()
@@ -56,22 +55,34 @@ def classify_category(article_id):
         doc = nlp(article.content)
         categories = []
 
-        # Classify the article based on certain keywords or patterns
-        for token in doc:
-            if token.text.lower() in ["terrorism", "protest", "political unrest", "riot"]:
-                categories.append("Terrorism/Protest/Political Unrest/Riot")
-            elif token.text.lower() in ["positive", "uplifting"]:
-                categories.append("Positive/Uplifting")
-            elif token.text.lower() in ["natural", "disaster"]:
-                categories.append("Natural Disasters")
+        # Check for specific keywords and entities
+        keywords = {
+            "terrorism", "protest", "political unrest", "riot",
+            "positive", "uplifting",
+            "natural", "disaster"
+        }
 
-        # If no specific category is found, assign it to "Others"
-        if not categories:
+        entities = {ent.text.lower() for ent in doc.ents}
+
+        # Extract relevant tokens and their POS tags
+        relevant_tokens = [(token.text.lower(), token.pos_) for token in doc if token.text.lower() in keywords]
+
+        # Classify the article based on the context of the text
+        if any(entity in entities for entity in ["terrorism", "protest", "political unrest", "riot"]) \
+                or any(token[0] in {"terrorism", "protest", "political unrest", "riot"} for token in relevant_tokens):
+            categories.append("Terrorism/Protest/Political Unrest/Riot")
+        elif any(entity in entities for entity in ["positive", "uplifting"]) \
+                or any(token[0] in {"positive", "uplifting"} for token in relevant_tokens):
+            categories.append("Positive/Uplifting")
+        elif any(entity in entities for entity in ["natural", "disaster"]) \
+                or any(token[0] in {"natural", "disaster"} for token in relevant_tokens):
+            categories.append("Natural Disasters")
+        else:
             categories.append("Others")
 
         article.category = ', '.join(categories)
         session.commit()
-
+  
 # Define function to parse feeds and send articles to the Celery queue
 def parse_feeds(feeds):
     articles = []
@@ -84,11 +95,27 @@ def parse_feeds(feeds):
             article['content'] = entry.get('summary', '')
             article['publish'] = entry.get('published', '')
             article['source_url'] = entry.link
+
+            # Fetch category for the article
+            doc = nlp(article['content'])
+            categories = []
+            for token in doc:
+                if token.text.lower() in ["terrorism", "protest", "political unrest", "riot"]:
+                    categories.append("Terrorism/Protest/Political Unrest/Riot")
+                elif token.text.lower() in ["positive", "uplifting"]:
+                    categories.append("Positive/Uplifting")
+                elif token.text.lower() in ["natural", "disaster"]:
+                    categories.append("Natural Disasters")
+            if not categories:
+                categories.append("Others")
+            article['category'] = ', '.join(categories)
+
             if article not in articles:
                 articles.append(article)
                 # Send article to Celery queue for further processing
                 classify_category.delay(article['id'])  # Pass article id
     return articles
+
 
 # Define function to export data to CSV
 def export_to_csv(articles):
